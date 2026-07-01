@@ -99,6 +99,6 @@ async def combined_middleware(request: Request, call_next):
 async def ping():
     current_request_id = request_id_ctx.get()
     return {
-        "email": "user@example.com",  # Replace with your logged-in email address
+        "email": "23f2000220@ds.study.iitm.ac.in",  # Replace with your logged-in email address
         "request_id": current_request_id
     }
