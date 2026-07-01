@@ -1,0 +1,4 @@
+curl -i \
+-H "X-Request-ID: test123" \
+-H "X-Client-Id: user1" \
+https://rate-limit-ltko.onrender.com/ping
