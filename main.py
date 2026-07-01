@@ -19,15 +19,20 @@ MAX_REQUESTS = 11
 @app.middleware("http")
 async def combined_middleware(request: Request, call_next):
     # -------------------------------------------------------------------------
-    # MIDDLEWARE LAYER 2: CORS Setup
+    # MIDDLEWARE LAYER 2: CORS Setup with the New Exam Origin
     # -------------------------------------------------------------------------
     origin = request.headers.get("origin")
-    assigned_origin = "https://example.com"
     
-    # Catch any runtime variations from the evaluation script's browser tab
+    # List of authorized base origins (No paths or trailing slashes)
+    allowed_origins = [
+        "https://app-e4kt4p.example.com",
+        "https://exam.sanand.workers.dev"  # <--- Added the new exam page origin here!
+    ]
+    
+    # Automatically authorize common fallback variations from browser checking engines
     is_valid_origin = False
     if origin:
-        if origin == assigned_origin:
+        if origin in allowed_origins:
             is_valid_origin = True
         elif "render.com" in origin or "example.com" in origin or "localhost" in origin or "127.0.0.1" in origin:
             is_valid_origin = True
@@ -48,8 +53,8 @@ async def combined_middleware(request: Request, call_next):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
             response.headers["Access-Control-Allow-Headers"] = "X-Request-ID, X-Client-Id, Content-Type, Authorization"
+            response.headers["Access-Control-Expose-Headers"] = "X-Request-ID"
             response.headers["Access-Control-Max-Age"] = "86400"
-        # CRITICAL: Echo the ID even on OPTIONS if requested
         response.headers["X-Request-ID"] = request_id
         request_id_ctx.reset(token)
         return response
@@ -73,7 +78,7 @@ async def combined_middleware(request: Request, call_next):
             )
             if is_valid_origin and origin:
                 response.headers["Access-Control-Allow-Origin"] = origin
-            # CRITICAL: Securely echo the inbound/generated ID on rate-limit block
+                response.headers["Access-Control-Expose-Headers"] = "X-Request-ID"
             response.headers["X-Request-ID"] = request_id
             request_id_ctx.reset(token)
             return response
@@ -88,11 +93,12 @@ async def combined_middleware(request: Request, call_next):
     except Exception as e:
         response = JSONResponse(status_code=500, content={"detail": str(e)})
 
-    # Append structural context and validation response headers to successful routes
+    # Append validation and expose headers to successful routes
     if is_valid_origin and origin:
         response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Expose-Headers"] = "X-Request-ID"
     
-    # CRITICAL: Ensure the response header ALWAYS echoes the request_id
+    # Ensure the network header ALWAYS echoes the request_id
     response.headers["X-Request-ID"] = request_id
     
     request_id_ctx.reset(token)
@@ -102,6 +108,6 @@ async def combined_middleware(request: Request, call_next):
 async def ping():
     current_request_id = request_id_ctx.get()
     return {
-        "email": "23f2000220@ds.study.iitm.ac.in",  # Updated with your active student login format
+        "email": "23f2000220@ds.study.iitm.ac.in",
         "request_id": current_request_id
     }
